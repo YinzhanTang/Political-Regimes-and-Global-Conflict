@@ -1,4 +1,4 @@
-########### Installing and Loading Libraries ##################
+########### Installing and Loading Libraries #################
 
 install.packages('here')
 install.packages('gghighlight')
