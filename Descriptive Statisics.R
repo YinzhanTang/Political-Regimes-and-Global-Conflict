@@ -1,4 +1,4 @@
-########### Installing and Loading Libraries #################
+########### Installing and Loading Libraries ##################
 
 install.packages('here')
 install.packages('gghighlight')
@@ -12,7 +12,7 @@ library(scales)
 
 ########### Reading in Polity IV Data ##########################
 
-p4v_2017 <- read_excel(here("data","p4v_2017.xlsx")) %>%
+p4v_2017 <- read_excel(here("data","Merged_Data","p4v_2017.xlsx")) %>%
     mutate(region = as.factor(region)) %>%
     mutate(region = fct_collapse(region,
                         'Europe and North America' = '0',
@@ -30,7 +30,7 @@ p4v_2017 <- read_excel(here("data","p4v_2017.xlsx")) %>%
                                                                  ifelse(pop > 300000000 & pop < 1000000000,"300M - 1B",
                                                                         ifelse(pop > 1000000000,"> 1B", NA )))))))))
 
-p4v_history <- read_excel(here("data","p4v_history.xlsx")) %>%
+p4v_history <- read_excel(here("data","Merged_Data","p4v_history.xlsx")) %>%
   mutate(region = as.factor(region)) %>%
   mutate(region = fct_collapse(region,
                                'Europe and North America' = '0',
@@ -40,7 +40,7 @@ p4v_history <- read_excel(here("data","p4v_history.xlsx")) %>%
                                'Oceania (Island States)' = '99')) %>%
   filter(!is.na(region))
 
-p4v_conflict <- read_excel(here("data", "p4v_conflict.xlsx")) %>%
+p4v_conflict <- read_excel(here("data", "Merged_Data", "p4v_conflict.xlsx")) %>%
   mutate(region = as.factor(region)) %>%
   mutate(region = fct_collapse(region,
                                'Europe and North America' = '0',
@@ -63,15 +63,15 @@ p1 <- p4v_2017 %>%
                                       "60 Million - 100 Million", "100 Million - 300 Million",
                                       "300 Million - 1 Billion", "> 1 Billion")) + 
   geom_smooth(formula = 'y ~ x', method = 'loess') + 
-  labs(title = "Fast-growing Developing Countries Polarizes on Democratic Ratings ", 
-       subtitle = "In developing world, political stability might be the key to economic success.",
-       x = "Democracy Status (Polity2 Index)", 
+  labs(title = "Political Status vs. GDP per capita ", 
+       subtitle = "Developing countries with successful economy polarize on democratic ratings",
+       x = "Political Status (Polity2 Index)", 
        y = "GDP per capita (log2)", 
        caption = "Source: Polity2 Index, World Bank", color = "Regions") + 
   scale_y_continuous(trans = "log2", labels = dollar) +
   theme_classic() 
 
-ggsave(here("output","plot12.pdf"), height = 10, width = 30, units = "cm", p1) 
+ggsave(here("output","plot1.pdf"), height = 10, width = 30, units = "cm", p1) 
 
 
 ########### Drawing the Second Graph #############################
@@ -79,8 +79,6 @@ ggsave(here("output","plot12.pdf"), height = 10, width = 30, units = "cm", p1)
 year_average <- p4v_history %>% 
   group_by(year) %>% 
   summarise(mean = mean(polity2, na.rm = TRUE))
-
-glimpse(region_average)
 
 p2 <- p4v_history %>%
   group_by(year,region) %>%
@@ -91,10 +89,10 @@ p2 <- p4v_history %>%
   geom_step(alpha = 0.4, aes(color = region)) + 
   geom_line(data = year_average, aes(x = year, y = mean), color = "black") +
   geom_vline(xintercept = c(1800, 1921, 1945, 1989), alpha = 0.5, linetype = "longdash") +
-  labs(title = "The World Becomes More Democratic Despite Several Recessions", 
-       subtitle = "Democratization continues as the world industrializes and globalizes.",
-       x = "Year (1800 - 2017)", 
-       y = "Democracy Status (Polity2 Scores)", 
+  labs(title = "Democratic Status in Different Years", 
+       subtitle = "The world has been becoming more democratic despite several recessions.",
+       x = "Year(1800 - 2017)",
+       y = "Political Status  (Average Polity2 Scores)", 
        caption = "Source: Polity2 Index (1800 - 2017)",
        color = "Regions") + 
   annotate("text", x = 2025, y = 5, label = "World", size = 3) + 
@@ -127,11 +125,11 @@ p3 <- p4v_conflict %>%
               se = FALSE, color = "black", alpha = 0.8) + 
   scale_y_continuous(sec.axis = sec_axis(~ . *1 , name = "Number of States")) +
   facet_grid(~status) + 
-  labs(title = "Democratic States Are More Peaceful", 
-       subtitle = "Democracy provides stable political environments and rational diplomatic policy.",
+  labs(title = "Conflict Meganitudes in Autocratic / Democratic Areas", 
+       subtitle = "Democratic States tend to have less conflicts.",
        x = "Year (1946 - 2017) ", 
        y = "Total Conflict Magnitudes", 
        caption = "Source: Center for Systemic Peace",
        color = "Regions")
 
-ggsave(here("output","plot31.pdf"), height = 10, width = 30, units = "cm", p3)
+ggsave(here("output","plot3.pdf"), height = 10, width = 30, units = "cm", p3)
