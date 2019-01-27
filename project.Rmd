@@ -1,0 +1,190 @@
+---
+title: "Political Regime and Conflicts"
+author: "Yinzhan Tang"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rmarkdown)
+library(tidyverse)
+library(dplyr)
+library(lemon)
+```
+
+```{r}
+p4v_2017 <- read_csv("p4v_2017.csv")
+p4v_conflict <- read_csv("p4v_conflict.csv")
+p4v_history <- read_csv("p4v_history.csv")
+```
+
+## 1. Introduction
+
+Political regime is considered one of the most influential factors contributing to conflicts. For this matter, a commonly held belief is that democracy cause peace at least between democratic countries, while autocracy often leads to all kinds of conflicts due to aggressive diplomatic policies and political oppression. However, many evidence showed that the impact of political regime on social stability is not that simple. This class project is a great opportunity for me to further examine the topic and draw my own conclusion. Although many researches have been done on this issue, I still think a visual perception of it is both interesting and valuable.
+
+## 2. An Overview of World's Political Status
+Simple data visualization techniques enables us to have an intutive sense of world's political status.
+```{r,fig.width=15, fig.height=8}
+p4v_2017 %>%
+  ggplot(aes(x = polity2, y = gdp_per_capita)) +
+  geom_text(aes(label = country, color = region, size = pop)) + 
+  geom_vline(xintercept = 0, color = "red") +
+  scale_size("Population", breaks = c(0,10000000, 20000000, 40000000,60000000,
+                                      100000000, 300000000, 1000000000), 
+                           labels = c("< 10 Million","10 Million - 20 Million",
+                                      "20 Million - 40 Million", "40 Million - 60 Million",
+                                      "60 Million - 100 Million", "100 Million - 300 Million",
+                                      "300 Million - 1 Billion", "> 1 Billion"),
+             range = c(2,10)) +   
+  scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
+                    labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +
+  geom_smooth(formula = 'y ~ x', method = 'loess') + 
+  labs(title = "In 2017 Democratic States Outnumber Autocratic States By A Ratio of 2:1", 
+       subtitle = "However, in developing world, democratic states are not weathier than autocratic states.",
+       x = "Political Status (Polity2 Index)", 
+       y = "GDP per capita (log2)", 
+       caption = "Source: Polity2 Index, World Bank", color = "Regions") + 
+  scale_y_continuous(trans = "log2", labels = scales::dollar) +
+  theme_bw(base_size = 20)
+```
+
+This graph shows that in 2017 there are more democratic countries (with postive Polity2 scores) than autocratic countres (with negative Polity2 scores) in the world (the ratio is approximately 2:1). Almost all autocratic countries concentrate in Asia and Africa. However, if ruling developed countries out of analysis, the democratic countries as a whole don't have better economic wellbeings than autocratic countries as expected. Some autocratic states have noticeable economic performance. China, which scores -7 in Polity2 Index, is the second-largest economy in the world and has a GDP per capita closed to $10000, almost 5 times the size of India, its democratic counterpart. Some Arabia States like Barlin, Saudi Arabia and United Arab Emirates have rich oil reserves, making them the world's most dictated states and richest states in the meantime.
+
+Looking back to the history, the world is also becoming more and more democratic, as the graph below shows. 
+```{r, fig.width=20, fig.height=8}
+year_average <- p4v_history %>% 
+  group_by(year) %>% 
+  summarise(mean = mean(polity2, na.rm = TRUE))
+
+p4v_history %>%
+  group_by(year,region) %>%
+  summarise(mean = mean(polity2, na.rm = TRUE)) %>% 
+  ggplot(aes(x = year, y = mean)) + 
+  annotate(geom = "rect", xmin = min(1921), xmax = max(1941), ymin = -Inf, ymax = Inf, fill = "grey", alpha = 0.4) + 
+  annotate(geom = "rect", xmin = min(1947), xmax = max(1991), ymin = -Inf, ymax = Inf, fill = "grey", alpha = 0.4)  +
+  scale_x_continuous(name = "Year (1800 - 2017)", 
+                     breaks = c(1800, 1921, 1941, 1947, 1991),
+                     labels = c(1800, 1921, 1941, 1947, 1991), trans = "log") +
+  geom_step(alpha = 0.8, aes(color = region)) + 
+  geom_line(data = year_average, aes(x = year, y = mean), color = "black") +
+  labs(title = "A Historical Look of World's Political Status", 
+       subtitle = "The world has been becoming more democratic despite some fluctuations.",
+       x = "Year(1800 - 2017)",
+       y = "Political Status  (Average Polity2 Scores)", 
+       caption = "Source: Polity2 Index (1800 - 2017)",
+       color = "Regions") + 
+  theme_bw(base_size = 20) +
+  annotate("text", x = 2025, y = 5, label = "World", size = 3) + 
+  annotate("text", x = 1930, y = -8, label = "Post-War \n Recession") +
+  annotate("text", x = 1967, y = -8, label = "Cold War") 
+  
+```
+
+This graph intuitively shows the evolution and development of political status in the past 217 years. The first modern democratic states were born in the industrial revolution. Along with the economic development, revolutions and reforms took place in many countries (mainly in Europe), bringing constitutions and elecotrial democracy. The number of democratic states continually increased until the World War I, after which many countries stepped back and gave dictators power because of the economy recession. During the Cold War, the world's democracy status deterioated again as Soviet Union expanded its global influence. After the USSR collapsed in 1991, many countries democratized, resulting in a sharp incrase in world's average democracy status.
+
+## 3. Political Schemes and Conflicts
+
+Similar data visualization techniques could also help us examine the relation between political schemes and conflicts. In the following analysis, I would use "Conflict Magnitude", a score on the intensity level of each conflict episode, to measure general conflict conditions in different scenarios. 
+
+```{r,fig.width=15, fig.height=8}
+p4v_int <- 
+  p4v_conflict %>%
+  filter(inttot > 0) %>%
+  mutate(conflict = inttot,
+         type = "International") %>%
+  subset(select = c(year, country, polity2, region, politic, conflict, type, muslim))
+
+p4v_civ <-   
+  p4v_conflict %>%
+  filter(civtot > 0) %>%
+  mutate(conflict = civtot,
+         type = "Civil") %>%
+  subset(select = c(year, country, polity2, region, politic, conflict, type, muslim))
+
+p4v_type <- rbind(p4v_int, p4v_civ)
+
+p4v_type %>%
+  mutate(status = ifelse(polity2 > 0, "Democratic Areas", "Autocratic Areas")) %>%
+  group_by(year, status, type) %>%
+  summarise(total = sum(conflict),
+            count = n()) %>%
+  ggplot(aes(x = year, y = total)) + 
+  annotate(geom = "rect", xmin = -Inf, xmax = max(1991), 
+           ymin = -Inf, ymax = Inf, fill = "grey", alpha = 0.4) +
+  geom_area(aes(fill = type), position = 'stack') + 
+  scale_fill_manual("Conflict Type",
+                     values = c("Civil" = "orange",
+                                "International" = "coral4")) + 
+  geom_vline(xintercept = 1991, alpha = 0.8, color = "black", linetype = "longdash") + 
+  scale_y_continuous(sec.axis = sec_axis(~ . *1 , name = "Number of States")) +
+  facet_grid(~status) + 
+  labs(title = "Post-War Conflict Meganitudes in Autocratic / Democratic Areas", 
+       subtitle = "Democratic States tend to have less conflicts (especially civil conflicts).",
+       x = "Year (1946 - 2017) ", 
+       y = "Total Conflict Magnitudes", 
+       caption = "Source: Center for Systemic Peace",
+       fill = "Conflict Type") +
+  theme_bw(base_size = 20) +
+  annotate("text", x = 1960, y = 75, label = "Cold War", size = 6) +
+  annotate("text", x = 2005, y = 75, label = "After", size = 6) 
+```
+
+This graph indicates that in general, after World War II, conflicts in autocratic areas significantly outnumber conflicts in democratic areas. In both areas, civil conflicts constituded the majority of violent conflicts (approximately 80%). However, both civil and international conflicts decrease in autocratic areas after Cold War, while the number of civil conflicts remains on a high level in democratic areas. This is probably because newly democratized countries have unstable political environment after social upheaval and need time for accomodations and adjustments. Democracy might lead to peace in the long-term, but in the short-term, it would cause social instability, just as other drastic changes. 
+
+```{r,fig.width=15, fig.height=8}
+p4v_conflict %>%
+  mutate(nborder = as.factor(nborder)) %>%
+  group_by(polity2, nborder)%>%
+  summarise(total = sum(inttot)) %>%
+  ggplot(aes(x = polity2, y = total)) + 
+  geom_col(aes(fill = nborder)) +   
+  scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
+                   labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +  
+  scale_fill_discrete("Bordering States", 
+                           label = c("0~3","3~5",
+                                      ">5")) +
+  labs(title = "Political Regimes and Interstate Conflicts", 
+       subtitle = "Autocratic states involved in more interstates conflicts.",
+       x = "Political Status(Polity2 Score) ", 
+       y = "Total Conflict Magnitudes", 
+       caption = "Source: Center for Systemic Peace",
+       fill = "Bordering States") +
+  theme_bw(base_size = 20)
+```
+
+There are usually many other reasons behind conflicts, thus further examination is needed to identify the individual impact of political regimes. In this graph, I chose the number of natural bordering states of countries as a reference since this factor is usually not correlated with the political regimes of countries. 
+
+This graph similary shows that autocrative states involved in much more interstate conflicts compared to democratic states. Although highly democratic countries as a whole also have a very high total conflict magnitudes, the majority of these conflicts happened in countries with 3 or more bordering states, while a large amounts of conflicts in autocratic world happened in countries with only 1 or 2 bordering states. If the assumption that countries with more neighbors have more interstate conflicts is true, then autocracy is very likely to have great individual impacts on conflict magnitudes.
+
+It is also noticeable that in "neutral" states (with a polity2 score of 0) there are also more interstate conflicts compared to its neighboring categories. Since these states usually have unstable political environment, this finding aligns with the our conclusion from the first graph to some extents.
+
+```{r,fig.width=15, fig.height=8}
+p4v_conflict %>%
+  filter(civtot > 0) %>%
+  ggplot(aes(x = polity2, y = civtot)) +
+  geom_jitter(aes(color = ethnic), size = 4) +
+  coord_capped_cart(bottom='both', left='none') +
+  theme_light(base_size = 20) + 
+  theme(panel.border=element_blank(), axis.line = element_line()) +
+    scale_color_manual("Conflict in Countries With",
+                    values = c("No Ethnical Conflicts" = "green", 
+                               "Minor Ethnical Conflicts" = "blue", 
+                               "Major Ethnical Conflicts" = "purple")) +
+    scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
+                   labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +
+  labs(title = "Political Regimes and Civil Conflicts", 
+       subtitle = "Civil conflicts are common in both democratic states and autocratic states.\nEspecially in states with ethnical conflicts.",
+       x = "Political Status(Polity2 Score) ", 
+       y = "Conflict Magnitude", 
+       caption = "Source: Center for Systemic Peace")
+```
+
+Ethnical conflicts are often the most important cause of civil conflicts. Similar to bordering states, ethnical diversity within a country is usually naturally-formed, making it a comparatively independent variable from political regimes. Although people might think that ethnical conflicts are less intensive in democratic countries because of negotiation schemes, it is often not true because in many situations, different ethnic groups don't have equal representatives in the government. As the largest democratic country, India has serious ethnical conflicts. Taking all considerations above, I believe ethnical conflict level is another helpful instrumental variable in the analysis of the individual impacts of political regimes. 
+
+The graph above shows that civil conflicts are evenly distributed in both autocratic and democratic countries. In the meantime, it is also clear that ethnical conflicts are also evenly distributed, which is consistent with our previous analysis. However, in democratic countries, most civil conflicts are closely related to ethnical conflicts, while in the autocratic category, about 30% civil conflicts happened in countries without ethnical conflicts. In other words, there are some other reasons causing civil conflicts in autocratic countries. These reasons, which might include political repressions, are possibly associated with autocratic political schemes. 
+
+
+
