@@ -143,23 +143,23 @@ p4v_conflict %>%
   geom_col(aes(fill = nborder)) +   
   scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
                    labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +  
-  scale_fill_discrete("Bordering States", 
-                           label = c("0~3","3~5",
-                                      ">5")) +
+  scale_fill_discrete("Propotion of Countries with", 
+                           label = c("0~3 Bordering Countries",
+                                     "3~5 Bordering Countries" ,
+                                      ">5 Border Countries")) +
   labs(title = "Political Regimes and Interstate Conflicts", 
        subtitle = "Autocratic states involved in more interstates conflicts.",
        x = "Political Status(Polity2 Score) ", 
        y = "Total Conflict Magnitudes", 
-       caption = "Source: Center for Systemic Peace",
-       fill = "Bordering States") +
+       caption = "Source: Center for Systemic Peace") +
   theme_bw(base_size = 20)
 ```
 
-There are usually many other reasons behind conflicts, thus further examination is needed to identify the individual impact of political regimes. In this graph, I chose the number of natural bordering states of countries as a reference since this factor is usually not correlated with the political regimes of countries. 
+There are usually many other reasons behind conflicts, thus further examination is needed to identify the individual impact of political regimes. In this graph, I chose the number of natural border countries as a reference since this factor is usually not correlated with the political regimes of countries. 
 
-This graph similary shows that autocrative states involved in much more interstate conflicts compared to democratic states. Although highly democratic countries as a whole also have a very high total conflict magnitudes, the majority of these conflicts happened in countries with 3 or more bordering states, while a large amounts of conflicts in autocratic world happened in countries with only 1 or 2 bordering states. If the assumption that countries with more neighbors have more interstate conflicts is true, then autocracy is very likely to have great individual impacts on conflict magnitudes.
+This graph similary shows that autocrative states involved in much more interstate conflicts compared to democratic states. Although highly democratic countries as a whole also have a very high total conflict magnitudes, the majority of these conflicts happened in countries with 3 or more border countries, while a large amounts of conflicts in autocratic world happened in countries with only 1 or 2 border countries. If the assumption that countries with more neighbors have more interstate conflicts is true, then autocracy is very likely to have great individual impacts on conflict magnitudes.
 
-It is also noticeable that in "neutral" states (with a polity2 score of 0) there are also more interstate conflicts compared to its neighboring categories. Since these states usually have unstable political environment, this finding aligns with the our conclusion from the first graph to some extents.
+It is also noticeable that in "neutral" countries (with a polity2 score of 0) there are also more interstate conflicts compared to its neighboring categories. Since these countries usually have unstable political environment, this finding aligns with the our conclusion from the first graph to some extents.
 
 ```{r,fig.width=15, fig.height=8}
 p4v_conflict %>%
@@ -182,7 +182,7 @@ p4v_conflict %>%
        caption = "Source: Center for Systemic Peace")
 ```
 
-Ethnical conflicts are often the most important cause of civil conflicts. Similar to bordering states, ethnical diversity within a country is usually naturally-formed, making it a comparatively independent variable from political regimes. Although people might think that ethnical conflicts are less intensive in democratic countries because of negotiation schemes, it is often not true because in many situations, different ethnic groups don't have equal representatives in the government. As the largest democratic country, India has serious ethnical conflicts. Taking all considerations above, I believe ethnical conflict level is another helpful instrumental variable in the analysis of the individual impacts of political regimes. 
+Ethnical conflicts are often the most important cause of civil conflicts. Similar to border countries, ethnical diversity within a country is usually naturally-formed, making it a comparatively independent variable from political regimes. Although people might think that ethnical conflicts are less intensive in democratic countries because of negotiation schemes, it is often not true because in many situations, different ethnic groups don't have equal representatives in the government. As the largest democratic country, India has serious ethnical conflicts. Taking all considerations above, I believe ethnical conflict level is another helpful instrumental variable in the analysis of the individual impacts of political regimes. 
 
 The graph above shows that civil conflicts are evenly distributed in both autocratic and democratic countries. In the meantime, it is also clear that ethnical conflicts are also evenly distributed, which is consistent with our previous analysis. However, in democratic countries, most civil conflicts are closely related to ethnical conflicts, while in the autocratic category, about 30% civil conflicts happened in countries without ethnical conflicts. In other words, there are some other reasons causing civil conflicts in autocratic countries. These reasons, which might include political repressions, are possibly associated with autocratic political schemes. 
 
