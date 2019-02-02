@@ -1,7 +1,8 @@
 ---
 title: "Political Regime and Conflicts"
-author: "Yinzhan Tang"
-output: html_document
+output:
+  html_document: 
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -9,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(ggridges)
+library(treemapify)
+library(ggraph)
 library(rmarkdown)
 library(tidyverse)
 library(dplyr)
@@ -30,25 +34,48 @@ Simple data visualization techniques enables us to have an intutive sense of wor
 ```{r,fig.width=15, fig.height=8}
 p4v_2017 %>%
   ggplot(aes(x = polity2, y = gdp_per_capita)) +
-  geom_text(aes(label = country, color = region, size = pop)) + 
-  geom_vline(xintercept = 0, color = "red") +
+  geom_jitter(aes(label = country, color = region, size = pop, face = "bold")) + 
+  geom_vline(xintercept = 0, color = "#EAE7DC") +
   scale_size("Population", breaks = c(0,10000000, 20000000, 40000000,60000000,
                                       100000000, 300000000, 1000000000), 
                            labels = c("< 10 Million","10 Million - 20 Million",
                                       "20 Million - 40 Million", "40 Million - 60 Million",
                                       "60 Million - 100 Million", "100 Million - 300 Million",
                                       "300 Million - 1 Billion", "> 1 Billion"),
-             range = c(2,10)) +   
+             range = c(3,15)) +   
   scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
                     labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +
   geom_smooth(formula = 'y ~ x', method = 'loess') + 
-  labs(title = "In 2017 Democratic States Outnumber Autocratic States By A Ratio of 2:1", 
+  labs(title = "Democratic Countries Outnumber Autocratic Countries By A Ratio of 2:1", 
        subtitle = "However, in developing world, democratic states are not weathier than autocratic states.",
        x = "Political Status (Polity2 Index)", 
        y = "GDP per capita (log2)", 
        caption = "Source: Polity2 Index, World Bank", color = "Regions") + 
   scale_y_continuous(trans = "log2", labels = scales::dollar) +
-  theme_bw(base_size = 20)
+  theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
+    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
+    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    panel.grid.major = element_line(color = "#EAE7DC"),
+    legend.background = element_rect(fill = "#272727"),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+  scale_color_manual("Regions",
+                    values = c("Africa" = "#FF652F", 
+                               "Asia" = "#FFE400",
+                               "Central and South America" = "#14A76C",
+                               "Europe and North America" = "#4056A1", 
+                               "Oceania (Island States)" = "#DA7893")) +
+  guides(color = guide_legend(override.aes=list(size=4)),
+         size = guide_legend(override.aes = list(color = "#EAE7DC")))
 ```
 
 This graph shows that in 2017 there are more democratic countries (with postive Polity2 scores) than autocratic countres (with negative Polity2 scores) in the world (the ratio is approximately 2:1). Almost all autocratic countries concentrate in Asia and Africa. However, if ruling developed countries out of analysis, the democratic countries as a whole don't have better economic wellbeings than autocratic countries as expected. Some autocratic states have noticeable economic performance. China, which scores -7 in Polity2 Index, is the second-largest economy in the world and has a GDP per capita closed to $10000, almost 5 times the size of India, its democratic counterpart. Some Arabia States like Barlin, Saudi Arabia and United Arab Emirates have rich oil reserves, making them the world's most dictated states and richest states in the meantime.
@@ -68,18 +95,41 @@ p4v_history %>%
   scale_x_continuous(name = "Year (1800 - 2017)", 
                      breaks = c(1800, 1921, 1941, 1947, 1991),
                      labels = c(1800, 1921, 1941, 1947, 1991), trans = "log") +
-  geom_step(alpha = 0.8, aes(color = region)) + 
-  geom_line(data = year_average, aes(x = year, y = mean), color = "black") +
+  geom_line(alpha = 0.8, aes(color = region), size = 1) + 
+  geom_line(data = year_average, aes(x = year, y = mean), color = "#EAE7DC", size = 1) +
   labs(title = "A Historical Look of World's Political Status", 
        subtitle = "The world has been becoming more democratic despite some fluctuations.",
        x = "Year(1800 - 2017)",
        y = "Political Status  (Average Polity2 Scores)", 
        caption = "Source: Polity2 Index (1800 - 2017)",
-       color = "Regions") + 
-  theme_bw(base_size = 20) +
-  annotate("text", x = 2025, y = 5, label = "World", size = 3) + 
-  annotate("text", x = 1930, y = -8, label = "Post-War \n Recession") +
-  annotate("text", x = 1967, y = -8, label = "Cold War") 
+       color = "Regions") +
+  annotate("text", x = 2025, y = 5, label = "World", size = 8, color = "#FEFFFF") + 
+  annotate("text", x = 1930, y = -8, label = "Post-War \n Recession",color = "#FEFFFF", size = 5) +
+  annotate("text", x = 1967, y = -8, label = "Cold War",color = "#FEFFFF", size = 5) + 
+  theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
+    axis.text.x = element_text(size = 18, color = "#FEFFFF", angle = 45),
+    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    legend.background = element_rect(fill = "#272727"),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.grid.major = element_line(color = "#EAE7DC")) +
+  scale_color_manual("Regions",
+                    values = c("Africa" = "#FF652F", 
+                               "Asia" = "#FFE400",
+                               "Central and South America" = "#14A76C",
+                               "Europe and North America" = "#4056A1", 
+                               "Oceania (Island States)" = "#DA7893")) +
+  guides(color = guide_legend(override.aes=list(size=4)),
+         size = guide_legend(override.aes = list(color = "#EAE7DC")))
   
 ```
 
@@ -113,13 +163,13 @@ p4v_type %>%
             count = n()) %>%
   ggplot(aes(x = year, y = total)) + 
   annotate(geom = "rect", xmin = -Inf, xmax = max(1991), 
-           ymin = -Inf, ymax = Inf, fill = "grey", alpha = 0.4) +
+           ymin = 0, ymax = Inf, fill = "grey", alpha = 0.4) +
   geom_area(aes(fill = type), position = 'stack') + 
   scale_fill_manual("Conflict Type",
                      values = c("Civil" = "orange",
                                 "International" = "coral4")) + 
+  scale_x_continuous(expand = c(0,0)) +
   geom_vline(xintercept = 1991, alpha = 0.8, color = "black", linetype = "longdash") + 
-  scale_y_continuous(sec.axis = sec_axis(~ . *1 , name = "Number of States")) +
   facet_grid(~status) + 
   labs(title = "Post-War Conflict Meganitudes in Autocratic / Democratic Areas", 
        subtitle = "Democratic States tend to have less conflicts (especially civil conflicts).",
@@ -127,64 +177,209 @@ p4v_type %>%
        y = "Total Conflict Magnitudes", 
        caption = "Source: Center for Systemic Peace",
        fill = "Conflict Type") +
-  theme_bw(base_size = 20) +
-  annotate("text", x = 1960, y = 75, label = "Cold War", size = 6) +
-  annotate("text", x = 2005, y = 75, label = "After", size = 6) 
+  annotate("text", x = 1953, y = 67, label = "Cold War", size = 6, color = "#FEFFFF") +
+  annotate("text", x = 2008, y = 67, label = "After", size = 6, color = "#FEFFFF")  + 
+  theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
+    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
+    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    legend.background = element_rect(fill = "#272727"),
+    panel.grid.major = element_line(color = "#EAE7DC"),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+  scale_fill_manual("Conflict Type",
+                    values = c("Civil" = "#F2DA57", 
+                               "International" = "#BA5F06")) +
+  guides(color = guide_legend(override.aes=list(size=4)),
+         size = guide_legend(override.aes = list(color = "white")))
 ```
 
 This graph indicates that in general, after World War II, conflicts in autocratic areas significantly outnumber conflicts in democratic areas. In both areas, civil conflicts constituded the majority of violent conflicts (approximately 80%). However, both civil and international conflicts decrease in autocratic areas after Cold War, while the number of civil conflicts remains on a high level in democratic areas. This is probably because newly democratized countries have unstable political environment after social upheaval and need time for accomodations and adjustments. Democracy might lead to peace in the long-term, but in the short-term, it would cause social instability, just as other drastic changes. 
 
 ```{r,fig.width=15, fig.height=8}
 p4v_conflict %>%
-  mutate(nborder = as.factor(nborder)) %>%
-  group_by(polity2, nborder)%>%
-  summarise(total = sum(inttot)) %>%
-  ggplot(aes(x = polity2, y = total)) + 
-  geom_col(aes(fill = nborder)) +   
-  scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
-                   labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +  
-  scale_fill_discrete("Propotion of Countries with", 
-                           label = c("0~3 Bordering Countries",
-                                     "3~5 Bordering Countries" ,
-                                      ">5 Border Countries")) +
+  mutate(nborder = as.factor(nborder),
+         nborderc = ifelse(nborderc == "0 - 2", "0~2", 
+                          ifelse(nborderc == "3 - 5", "3~5", 
+                                 ifelse(nborderc == ">5", ">5", NA)))) %>%
+  filter(inttot > 0) %>%
+  group_by(polity2, nborderc) %>%
+  ggplot(aes(x = inttot, y = nborderc)) + 
+  geom_density_ridges(aes(fill = nborderc), shape = 19, show.legend = FALSE) + 
+  scale_y_discrete(limits = c("0~2","3~5",">5")) + 
   labs(title = "Political Regimes and Interstate Conflicts", 
-       subtitle = "Autocratic states involved in more interstates conflicts.",
-       x = "Political Status(Polity2 Score) ", 
-       y = "Total Conflict Magnitudes", 
+       subtitle = "In the case of same numbers of border states, autocratic states involved in more interstates conflicts.",
+       x = "Conflict Magnitudes", 
+       y = "Bordering States", 
        caption = "Source: Center for Systemic Peace") +
-  theme_bw(base_size = 20)
+    theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
+    axis.text.x = element_text(size = 15, color = "#FEFFFF"),
+    axis.text.y = element_text(size = 15, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    legend.background = element_rect(fill = "#272727"),
+    panel.grid.major = element_line(color = "#EAE7DC"),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    scale_fill_manual("In Countries With",
+                    values = c("0~2" = "#005D6E", 
+                               "3~5" = "#42A5B3",
+                               ">5" = "#137B80")) +
+  facet_grid(~politic)
 ```
 
-There are usually many other reasons behind conflicts, thus further examination is needed to identify the individual impact of political regimes. In this graph, I chose the number of natural border countries as a reference since this factor is usually not correlated with the political regimes of countries. 
+There are usually many other reasons behind conflicts, thus further examination is needed to identify the individual impact of political regimes. In this graph, I chose the number of natural border countries as a reference since this factor is usually not correlated with the political regimes but is obviously positive correlated with interstate conflicts. 
 
-This graph similary shows that autocrative states involved in much more interstate conflicts compared to democratic states. Although highly democratic countries as a whole also have a very high total conflict magnitudes, the majority of these conflicts happened in countries with 3 or more border countries, while a large amounts of conflicts in autocratic world happened in countries with only 1 or 2 border countries. If the assumption that countries with more neighbors have more interstate conflicts is true, then autocracy is very likely to have great individual impacts on conflict magnitudes.
+This graph shows that, generally speaking, in the case of same numbers of border states, states with autocrative political schemes involved in more interstate conflicts compared to democratic states. Conflicts in autocratic states also have higher magnitudes, especially in the category of "3~5 Bordering States". When number of bordering states climbs to above 5, the difference between autocratic and democratic states becomes less significant. As number of bordering states becomes the predominant effect, democratic states in thie level also have more severe conflicts. When the number of bordering states drop to below 2, the difference between the two types of states is also less marked. Democratic countries even have more conflicts with magnitudes higher than 2.5 on record. This is probably because the United States and the United Kingdoms, who traditionally play active and interventionist role in international affairs，fall in this category. 
 
-It is also noticeable that in "neutral" countries (with a polity2 score of 0) there are also more interstate conflicts compared to its neighboring categories. Since these countries usually have unstable political environment, this finding aligns with the our conclusion from the first graph to some extents.
+In conclusion, autocratic states tend to take more violent and aggresive actions when confronted with interstate disputes. Beside that, the number of bordering states also play an important role in the brewing of interstate conflicts, especially when having more than 5 neighboring states.
 
 ```{r,fig.width=15, fig.height=8}
 p4v_conflict %>%
   filter(civtot > 0) %>%
-  ggplot(aes(x = polity2, y = civtot)) +
-  geom_jitter(aes(color = ethnic), size = 4) +
-  coord_capped_cart(bottom='both', left='none') +
-  theme_light(base_size = 20) + 
-  theme(panel.border=element_blank(), axis.line = element_line()) +
-    scale_color_manual("Conflict in Countries With",
-                    values = c("No Ethnical Conflicts" = "green", 
-                               "Minor Ethnical Conflicts" = "blue", 
-                               "Major Ethnical Conflicts" = "purple")) +
-    scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
-                   labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +
+  ggplot(aes(x = ethnicc, y = civtot)) + 
+  geom_col(aes(fill = ethnicc), size = 4, show.legend = FALSE) +
+  scale_x_discrete(limits = c('Non', "Minor", "Major")) +
   labs(title = "Political Regimes and Civil Conflicts", 
-       subtitle = "Civil conflicts are common in both democratic states and autocratic states.\nEspecially in states with ethnical conflicts.",
-       x = "Political Status(Polity2 Score) ", 
-       y = "Conflict Magnitude", 
-       caption = "Source: Center for Systemic Peace")
+       subtitle = "Autocratic states tend to have more severe civil conflicts, even in states without severe ethnic conflicts.",
+       x = "Ethnic Conflicts", 
+       y = "Total Conflict Magnitudes", 
+       caption = "Source: Center for Systemic Peace") +
+  theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
+    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
+    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    legend.background = element_rect(fill = "#272727"),
+    panel.grid.major = element_line(color = "#EAE7DC"),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    scale_fill_manual("Ethnic Conflicts",
+                    values = c("Major" = "#BD8F22", 
+                               "Minor" = "#E3BA22",
+                               "Non" = "#F2DA57")) +
+  facet_grid(~ politic)
 ```
 
-Ethnical conflicts are often the most important cause of civil conflicts. Similar to border countries, ethnical diversity within a country is usually naturally-formed, making it a comparatively independent variable from political regimes. Although people might think that ethnical conflicts are less intensive in democratic countries because of negotiation schemes, it is often not true because in many situations, different ethnic groups don't have equal representatives in the government. As the largest democratic country, India has serious ethnical conflicts. Taking all considerations above, I believe ethnical conflict level is another helpful instrumental variable in the analysis of the individual impacts of political regimes. 
+Ethnical conflicts are often the most important cause of civil conflicts. Similar to border countries, ethnical diversity within a country is usually naturally-formed, making it a comparatively independent variable from political regimes. Although people might think that ethnical conflicts are less intensive in democratic countries because of negotiation schemes, it is often not true because in many situations, different ethnic groups don't have equal representations in the government. As the largest democratic country, India has serious ethnical conflicts. Taking all considerations above, I believe ethnical conflict level is another helpful instrumental variable in the analysis of the individual impacts of political regimes. 
 
-The graph above shows that civil conflicts are evenly distributed in both autocratic and democratic countries. In the meantime, it is also clear that ethnical conflicts are also evenly distributed, which is consistent with our previous analysis. However, in democratic countries, most civil conflicts are closely related to ethnical conflicts, while in the autocratic category, about 30% civil conflicts happened in countries without ethnical conflicts. In other words, there are some other reasons causing civil conflicts in autocratic countries. These reasons, which might include political repressions, are possibly associated with autocratic political schemes. 
+The graph above shows that there are significantly more severe civil conflicts in autocratic states than in democratic states. Additionally, most civil conflicts happened in states with ethnical conflicts, which further validates the present conclusion that ethnical conflicts often lead to severe civil conflicts. However, in democratic states, about 70% civil conflicts happened in states with minor or major ethnical conflicts, while in autocratic states, almost one half of civil conflicts happened in states without ethnical conflicts. In other words, ethnical conflicts play a less important role in the eruption of civil conflicts in autocratic states. There are other more significant reasons causing civil conflicts. These reasons, which might include political repressions, are possibly associated with autocratic political schemes. 
+
+```{r,fig.width=15, fig.height=8}
+pop <- p4v_2017[c(5,14)]
+p4v_conflict_pop <- merge(pop, p4v_conflict, by = "country")
+
+p4v_conflict_pop %>% 
+  mutate(population = ifelse(population == "300-1000"|population == "> 1000", 
+                             ">300", population)) %>%
+  ggplot(aes(x = population, y = conflict)) +
+  geom_col(aes(color = population), show.legend = FALSE) +
+  coord_polar() +
+  facet_grid(~politic) + 
+  scale_x_discrete(limits = c("< 10","10-30",
+                                      "30-50", "50-70",
+                                      "70-100", "100-300",
+                                      ">300")) +
+    theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
+    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
+    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    legend.background = element_rect(fill = "#272727"),
+    panel.grid.major = element_line(color = "#EAE7DC"),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+  labs(title = "Political Regimes and Violent Conflicts", 
+       subtitle = "Autocratic states tend to have more intensified violent conflicts, which produced high casulties \neven in states with small populations.",
+       x = "Population (Millions)", 
+       y = "Total Conflict Magnitudes", 
+       caption = "Source: Center for Systemic Peace & World Bank")
+
+```
+
+Given the fact that CSP's Conflict Magnitude is based on casulties in each conflict episode, I consider population is also an useful instrumental variable for this analysis. Firstly, population is at least not directly associated with political regimes. Secondly, population is related to conflict magnitudes. It is not hard to imagine that populous states suffer greater casualities than underpopulated states. 
+
+From the above graph, it is clearly to see that autocratic states have higher conflict magnitudes than democratic states in general, which aligns with our previous conclusions. Additionally, in autocratic areas, the deadliest conflicts occured in states with comparatively small population 
+(below 50 Million). If the previous assumption that population is positively correlated with conflict magnitude is true, then political regime is very likely to have huge individual impacts on all kinds of violent conflicts.
 
 
+```{r,fig.width=15, fig.height=8}
+p4v_type %>%
+  mutate(status = ifelse(polity2 > 0, "Conflicts in Democratic Areas", 
+                         "Conflicts in Autocratic Areas"),
+         muslim = ifelse(muslim == "Muslim Majority States(> 50%)", "Muslim Majority(> 50%)",
+         ifelse(muslim == "Muslim Minority States(10%~50%)", "Muslim Minority(10%~50%)",
+         "Very Few Muslim(10%<)"))) %>% 
+  group_by(status, muslim) %>% 
+  summarise(count = n()) %>%
+  mutate(porp = ifelse(status == "Conflicts in Autocratic Areas", count/853, count/671)) %>%
+  ggplot(aes(x = "", y = porp, fill = muslim)) + 
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start=0) +
+  facet_grid(~status) +
+  scale_fill_manual("Countries with", 
+                    values = c("Muslim Majority(> 50%)" = "seagreen", 
+                               "Muslim Minority(10%~50%)" = "chartreuse3", 
+                               "Very Few Muslim(10%<)" = "cadetblue3")) + 
+  geom_text(aes(label = paste0(round(porp*100), "%")), 
+            position = position_stack(vjust = 0.5), size = 10, 
+            color = "#FEFFFF", face = "bold") + 
+  labs(x = NULL, 
+       y = NULL, 
+       title = "Muslim Population and Conflicts",
+       subtitle = "Countries with large Muslim population have more conflicts, regardless of political regimes. \nMuslim extremism is still a major threat to wolrd peace.",
+       fill = "Countries with",
+        caption = "Source: Center for Systemic Peace") +
+  theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
+    panel.background = element_rect(fill = "#272727"),
+    plot.background = element_rect(fill = "#272727"),
+    legend.key = element_rect(fill = "#272727"),
+    legend.background = element_rect(fill = "#272727"),
+    panel.grid.major = element_line(color = "#EAE7DC"),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) 
+```
 
+In the past 70 years, 60% - 70% of severe violent conflicts occured in states with large Muslim population. In autocratic areas, Muslim-majority states played a dominant role, contributing to 44% of the total conflicts. This is not surprising since a similiar portion of the autocratic states are Muslim-majority states. In democratic areas, however, Muslim-minority states in turn have more violent conflicts. This is probably related to the emerging Muslim fundamentalism, which inspired Muslim extremists to sabotage democracy and establish new Islamic states. 
