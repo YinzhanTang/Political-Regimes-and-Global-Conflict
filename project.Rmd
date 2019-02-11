@@ -10,19 +10,28 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(rgdal)
+library(ggplot2)
 library(ggridges)
-library(treemapify)
+library(treemap)
 library(ggraph)
 library(rmarkdown)
 library(tidyverse)
 library(dplyr)
 library(lemon)
+library(sf)
+library(ggmap)
+library(extrafont)
+library(forcats)
+library(treemapify)
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE, error=FALSE}
 p4v_2017 <- read_csv("p4v_2017.csv")
 p4v_conflict <- read_csv("p4v_conflict.csv")
 p4v_history <- read_csv("p4v_history.csv")
+world_shp <- st_read("TM_WORLD_BORDERS-0.3.shp")
+world <- read_csv("ged181.csv") %>% filter(year == 2017)
 ```
 
 ## 1. Introduction
@@ -31,11 +40,11 @@ Political regime is considered one of the most influential factors contributing 
 
 ## 2. An Overview of World's Political Status
 Simple data visualization techniques enables us to have an intutive sense of world's political status.
-```{r,fig.width=15, fig.height=8}
+```{r,fig.width=15, fig.height=8, warning=FALSE, message=FALSE, error=FALSE}
 p4v_2017 %>%
   ggplot(aes(x = polity2, y = gdp_per_capita)) +
   geom_jitter(aes(label = country, color = region, size = pop, face = "bold")) + 
-  geom_vline(xintercept = 0, color = "#EAE7DC") +
+  geom_vline(xintercept = 0, color = "#565656") +
   scale_size("Population", breaks = c(0,10000000, 20000000, 40000000,60000000,
                                       100000000, 300000000, 1000000000), 
                            labels = c("< 10 Million","10 Million - 20 Million",
@@ -46,42 +55,42 @@ p4v_2017 %>%
   scale_x_continuous(breaks = c(-10, -5, 0 , 5, 10),
                     labels = c("Highly Autocrative", "Autocrative", "Neutral", "Democratic" ,"Highly Democratic")) +
   geom_smooth(formula = 'y ~ x', method = 'loess') + 
-  labs(title = "Democratic Countries Outnumber Autocratic Countries By A Ratio of 2:1", 
+  labs(title = "Democratic Countries Outnumber Autocratic Countries By A Ratio of 4:1", 
        subtitle = "However, in developing world, democratic states are not weathier than autocratic states.",
        x = "Political Status (Polity2 Index)", 
        y = "GDP per capita (log2)", 
        caption = "Source: Polity2 Index, World Bank", color = "Regions") + 
   scale_y_continuous(trans = "log2", labels = scales::dollar) +
   theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
-    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
-    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
-    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 18, color = "#76323F"),
+    axis.text.y = element_text(size = 18, color = "#76323F"),
     strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    panel.grid.major = element_line(color = "#EAE7DC"),
-    legend.background = element_rect(fill = "#272727"),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    panel.grid.major = element_line(color = "#565656"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    legend.title = element_text(size = 15, face = "bold", color = "#D7CEC7")) +
   scale_color_manual("Regions",
                     values = c("Africa" = "#FF652F", 
-                               "Asia" = "#FFE400",
+                               "Asia" = "#F9CF00",
                                "Central and South America" = "#14A76C",
                                "Europe and North America" = "#4056A1", 
                                "Oceania (Island States)" = "#DA7893")) +
   guides(color = guide_legend(override.aes=list(size=4)),
-         size = guide_legend(override.aes = list(color = "#EAE7DC")))
+         size = guide_legend(override.aes = list(color = "#76323F")))
 ```
 
 This graph shows that in 2017 there are more democratic countries (with postive Polity2 scores) than autocratic countres (with negative Polity2 scores) in the world (the ratio is approximately 2:1). Almost all autocratic countries concentrate in Asia and Africa. However, if ruling developed countries out of analysis, the democratic countries as a whole don't have better economic wellbeings than autocratic countries as expected. Some autocratic states have noticeable economic performance. China, which scores -7 in Polity2 Index, is the second-largest economy in the world and has a GDP per capita closed to $10000, almost 5 times the size of India, its democratic counterpart. Some Arabia States like Barlin, Saudi Arabia and United Arab Emirates have rich oil reserves, making them the world's most dictated states and richest states in the meantime.
 
 Looking back to the history, the world is also becoming more and more democratic, as the graph below shows. 
-```{r, fig.width=20, fig.height=8}
+```{r, fig.width=20, fig.height=8, warning=FALSE, message=FALSE, error=FALSE}
 year_average <- p4v_history %>% 
   group_by(year) %>% 
   summarise(mean = mean(polity2, na.rm = TRUE))
@@ -95,33 +104,33 @@ p4v_history %>%
   scale_x_continuous(name = "Year (1800 - 2017)", 
                      breaks = c(1800, 1921, 1941, 1947, 1991),
                      labels = c(1800, 1921, 1941, 1947, 1991), trans = "log") +
-  geom_line(alpha = 0.8, aes(color = region), size = 1) + 
-  geom_line(data = year_average, aes(x = year, y = mean), color = "#EAE7DC", size = 1) +
+  geom_step(alpha = 0.6, aes(color = region), size = 2) + 
+  geom_line(data = year_average, aes(x = year, y = mean), color = "#EAE7DC", size = 2) +
   labs(title = "A Historical Look of World's Political Status", 
        subtitle = "The world has been becoming more democratic despite some fluctuations.",
-       x = "Year(1800 - 2017)",
+       x = "Year(1800 - 2012)",
        y = "Political Status  (Average Polity2 Scores)", 
-       caption = "Source: Polity2 Index (1800 - 2017)",
+       caption = "Source: Polity2 Index (1800 - 2012)",
        color = "Regions") +
-  annotate("text", x = 2025, y = 5, label = "World", size = 8, color = "#FEFFFF") + 
-  annotate("text", x = 1930, y = -8, label = "Post-War \n Recession",color = "#FEFFFF", size = 5) +
-  annotate("text", x = 1967, y = -8, label = "Cold War",color = "#FEFFFF", size = 5) + 
+  annotate("text", x = 2025, y = 5, label = "World", size = 8, color = "#76323F") + 
+  annotate("text", x = 1930, y = -8, label = "Post-War \n Recession",color = "#76323F", size = 5) +
+  annotate("text", x = 1967, y = -8, label = "Cold War",color = "#76323F", size = 5) + 
   theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
-    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
-    axis.text.x = element_text(size = 18, color = "#FEFFFF", angle = 45),
-    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 18, color = "#76323F", angle = 45),
+    axis.text.y = element_text(size = 18, color = "#76323F"),
     strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    legend.background = element_rect(fill = "#272727"),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.grid.major = element_line(color = "#EAE7DC")) +
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.grid.major = element_line(color = "#565656")) +
   scale_color_manual("Regions",
                     values = c("Africa" = "#FF652F", 
                                "Asia" = "#FFE400",
@@ -139,7 +148,7 @@ This graph intuitively shows the evolution and development of political status i
 
 Similar data visualization techniques could also help us examine the relation between political schemes and conflicts. In the following analysis, I would use "Conflict Magnitude", a score on the intensity level of each conflict episode, to measure general conflict conditions in different scenarios. 
 
-```{r,fig.width=15, fig.height=8}
+```{r,fig.width=15, fig.height=8, warning=FALSE, message=FALSE, error=FALSE}
 p4v_int <- 
   p4v_conflict %>%
   filter(inttot > 0) %>%
@@ -173,39 +182,39 @@ p4v_type %>%
   facet_grid(~status) + 
   labs(title = "Post-War Conflict Meganitudes in Autocratic / Democratic Areas", 
        subtitle = "Democratic States tend to have less conflicts (especially civil conflicts).",
-       x = "Year (1946 - 2017) ", 
+       x = "Year (1946 - 2012) ", 
        y = "Total Conflict Magnitudes", 
        caption = "Source: Center for Systemic Peace",
        fill = "Conflict Type") +
-  annotate("text", x = 1953, y = 67, label = "Cold War", size = 6, color = "#FEFFFF") +
-  annotate("text", x = 2008, y = 67, label = "After", size = 6, color = "#FEFFFF")  + 
+  annotate("text", x = 1953, y = 67, label = "Cold War", size = 6, color = "#76323F") +
+  annotate("text", x = 2008, y = 67, label = "After", size = 6, color = "#76323F")  + 
   theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
-    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
-    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
-    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 18, color = "#76323F"),
+    axis.text.y = element_text(size = 18, color = "#76323F"),
     strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    legend.background = element_rect(fill = "#272727"),
-    panel.grid.major = element_line(color = "#EAE7DC"),
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    panel.grid.major = element_line(color = "#565656"),
     panel.grid = element_blank(),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F")) +
   scale_fill_manual("Conflict Type",
-                    values = c("Civil" = "#F2DA57", 
-                               "International" = "#BA5F06")) +
+                    values = c("Civil" = "#C09F80", 
+                               "International" = "#76323F")) +
   guides(color = guide_legend(override.aes=list(size=4)),
-         size = guide_legend(override.aes = list(color = "white")))
+         size = guide_legend(override.aes = list(color = "#D7CEC7")))
 ```
 
 This graph indicates that in general, after World War II, conflicts in autocratic areas significantly outnumber conflicts in democratic areas. In both areas, civil conflicts constituded the majority of violent conflicts (approximately 80%). However, both civil and international conflicts decrease in autocratic areas after Cold War, while the number of civil conflicts remains on a high level in democratic areas. This is probably because newly democratized countries have unstable political environment after social upheaval and need time for accomodations and adjustments. Democracy might lead to peace in the long-term, but in the short-term, it would cause social instability, just as other drastic changes. 
 
-```{r,fig.width=15, fig.height=8}
+```{r,fig.width=15, fig.height=8, warning=FALSE, message=FALSE, error=FALSE}
 p4v_conflict %>%
   mutate(nborder = as.factor(nborder),
          nborderc = ifelse(nborderc == "0 - 2", "0~2", 
@@ -222,26 +231,26 @@ p4v_conflict %>%
        y = "Bordering States", 
        caption = "Source: Center for Systemic Peace") +
     theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
-    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
-    axis.text.x = element_text(size = 15, color = "#FEFFFF"),
-    axis.text.y = element_text(size = 15, color = "#FEFFFF"),
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 15, color = "#76323F"),
+    axis.text.y = element_text(size = 15, color = "#76323F"),
     strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    legend.background = element_rect(fill = "#272727"),
-    panel.grid.major = element_line(color = "#EAE7DC"),
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#76323F"),
+    panel.grid.major = element_line(color = "#565656"),
     panel.grid = element_blank(),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F")) +
     scale_fill_manual("In Countries With",
-                    values = c("0~2" = "#005D6E", 
-                               "3~5" = "#42A5B3",
-                               ">5" = "#137B80")) +
+                    values = c("0~2" = "#C09F80", 
+                               "3~5" = "#76323F",
+                               ">5" = "#565656")) +
   facet_grid(~politic)
 ```
 
@@ -251,7 +260,7 @@ This graph shows that, generally speaking, in the case of same numbers of border
 
 In conclusion, autocratic states tend to take more violent and aggresive actions when confronted with interstate disputes. Beside that, the number of bordering states also play an important role in the brewing of interstate conflicts, especially when having more than 5 neighboring states.
 
-```{r,fig.width=15, fig.height=8}
+```{r,fig.width=15, fig.height=8, warning=FALSE, message=FALSE, error=FALSE }
 p4v_conflict %>%
   filter(civtot > 0) %>%
   ggplot(aes(x = ethnicc, y = civtot)) + 
@@ -263,26 +272,26 @@ p4v_conflict %>%
        y = "Total Conflict Magnitudes", 
        caption = "Source: Center for Systemic Peace") +
   theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
-    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
-    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
-    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 18, color = "#76323F"),
+    axis.text.y = element_text(size = 18, color = "#76323F"),
     strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    legend.background = element_rect(fill = "#272727"),
-    panel.grid.major = element_line(color = "#EAE7DC"),
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    panel.grid.major = element_line(color = "#565656"),
     panel.grid = element_blank(),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F")) +
     scale_fill_manual("Ethnic Conflicts",
-                    values = c("Major" = "#BD8F22", 
-                               "Minor" = "#E3BA22",
-                               "Non" = "#F2DA57")) +
+                    values = c("Major" = "#C09F80", 
+                               "Minor" = "#76323F",
+                               "Non" = "#565656")) +
   facet_grid(~ politic)
 ```
 
@@ -290,43 +299,43 @@ Ethnical conflicts are often the most important cause of civil conflicts. Simila
 
 The graph above shows that there are significantly more severe civil conflicts in autocratic states than in democratic states. Additionally, most civil conflicts happened in states with ethnical conflicts, which further validates the present conclusion that ethnical conflicts often lead to severe civil conflicts. However, in democratic states, about 70% civil conflicts happened in states with minor or major ethnical conflicts, while in autocratic states, almost one half of civil conflicts happened in states without ethnical conflicts. In other words, ethnical conflicts play a less important role in the eruption of civil conflicts in autocratic states. There are other more significant reasons causing civil conflicts. These reasons, which might include political repressions, are possibly associated with autocratic political schemes. 
 
-```{r,fig.width=15, fig.height=8}
+```{r,fig.width=15, fig.height=8, warning=FALSE, message=FALSE, error=FALSE}
 pop <- p4v_2017[c(5,14)]
 p4v_conflict_pop <- merge(pop, p4v_conflict, by = "country")
 
 p4v_conflict_pop %>% 
+  filter(conflict > 0) %>%
   mutate(population = ifelse(population == "300-1000"|population == "> 1000", 
                              ">300", population)) %>%
-  ggplot(aes(x = population, y = conflict)) +
-  geom_col(aes(color = population), show.legend = FALSE) +
-  coord_polar() +
+  ggplot(aes(x = population, y = conflict)) + 
+  geom_col(fill = "#76323F", show.legend = FALSE) +
   facet_grid(~politic) + 
   scale_x_discrete(limits = c("< 10","10-30",
                                       "30-50", "50-70",
                                       "70-100", "100-300",
                                       ">300")) +
     theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_text(size = 18, face="bold", color = "#FEFFFF"), 
-    axis.title.y = element_text(size = 18, face="bold", color = "#FEFFFF"),
-    axis.text.x = element_text(size = 18, color = "#FEFFFF"),
-    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 18, color = "#76323F"),
+    axis.text.y = element_text(size = 18, color = "#76323F"),
     strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    legend.background = element_rect(fill = "#272727"),
-    panel.grid.major = element_line(color = "#EAE7DC"),
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    panel.grid.major = element_line(color = "#565656"),
     panel.grid = element_blank(),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) +
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F")) +
   labs(title = "Political Regimes and Violent Conflicts", 
        subtitle = "Autocratic states tend to have more intensified violent conflicts, which produced high casulties \neven in states with small populations.",
        x = "Population (Millions)", 
        y = "Total Conflict Magnitudes", 
-       caption = "Source: Center for Systemic Peace & World Bank")
+       caption = "Source: Center for Systemic Peace & World Bank") 
 
 ```
 
@@ -335,51 +344,149 @@ Given the fact that CSP's Conflict Magnitude is based on casulties in each confl
 From the above graph, it is clearly to see that autocratic states have higher conflict magnitudes than democratic states in general, which aligns with our previous conclusions. Additionally, in autocratic areas, the deadliest conflicts occured in states with comparatively small population 
 (below 50 Million). If the previous assumption that population is positively correlated with conflict magnitude is true, then political regime is very likely to have huge individual impacts on all kinds of violent conflicts.
 
+```{r}
+treemap <- p4v_conflict %>%
+  filter(year == 2012) %>%
+  mutate(country = as.factor(country),
+         muslim = ifelse(muslim == "Muslim Majority States(> 50%)", 2, 
+                         ifelse(muslim == "Muslim Minority States(10%~50%)", 1, 0)),
+         politic = as.factor(politic)) %>%
+  group_by(country) %>%
+  summarise(conflict, politic, muslim) %>%
+  treemap(index = c("country"), 
+          vSize = "conflict", vColor = "muslim",type = "value") 
 
-```{r,fig.width=15, fig.height=8}
-p4v_type %>%
-  mutate(status = ifelse(polity2 > 0, "Conflicts in Democratic Areas", 
-                         "Conflicts in Autocratic Areas"),
-         muslim = ifelse(muslim == "Muslim Majority States(> 50%)", "Muslim Majority(> 50%)",
-         ifelse(muslim == "Muslim Minority States(10%~50%)", "Muslim Minority(10%~50%)",
-         "Very Few Muslim(10%<)"))) %>% 
-  group_by(status, muslim) %>% 
-  summarise(count = n()) %>%
-  mutate(porp = ifelse(status == "Conflicts in Autocratic Areas", count/853, count/671)) %>%
-  ggplot(aes(x = "", y = porp, fill = muslim)) + 
-  geom_bar(stat = "identity", width = 1) +
-  coord_polar("y", start=0) +
-  facet_grid(~status) +
-  scale_fill_manual("Countries with", 
-                    values = c("Muslim Majority(> 50%)" = "seagreen", 
-                               "Muslim Minority(10%~50%)" = "chartreuse3", 
-                               "Very Few Muslim(10%<)" = "cadetblue3")) + 
-  geom_text(aes(label = paste0(round(porp*100), "%")), 
-            position = position_stack(vjust = 0.5), size = 10, 
-            color = "#FEFFFF", face = "bold") + 
-  labs(x = NULL, 
-       y = NULL, 
-       title = "Muslim Population and Conflicts",
-       subtitle = "Countries with large Muslim population have more conflicts, regardless of political regimes. \nMuslim extremism is still a major threat to wolrd peace.",
-       fill = "Countries with",
-        caption = "Source: Center for Systemic Peace") +
-  theme(
-    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#FEFFFF"),
-    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#FEFFFF"),
-    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#FEFFFF"), 
-    axis.title.x = element_blank(), 
-    axis.title.y = element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_text(size = 18, color = "#FEFFFF"),
-    strip.text.x = element_text(size = 15, face="bold"),
-    legend.text = element_text(size = 15, face = "bold", color = "#FEFFFF"),
-    panel.background = element_rect(fill = "#272727"),
-    plot.background = element_rect(fill = "#272727"),
-    legend.key = element_rect(fill = "#272727"),
-    legend.background = element_rect(fill = "#272727"),
-    panel.grid.major = element_line(color = "#EAE7DC"),
-    panel.grid = element_blank(),
-    legend.title = element_text(size = 15, face = "bold", color = "#FEFFFF")) 
+treemap
 ```
 
 In the past 70 years, 60% - 70% of severe violent conflicts occured in states with large Muslim population. In autocratic areas, Muslim-majority states played a dominant role, contributing to 44% of the total conflicts. This is not surprising since a similiar portion of the autocratic states are Muslim-majority states. In democratic areas, however, Muslim-minority states in turn have more violent conflicts. This is probably related to the emerging Muslim fundamentalism, which inspired Muslim extremists to sabotage democracy and establish new Islamic states. 
+
+```{r,fig.width=15, fig.height=8, warning=FALSE, message=FALSE, error=FALSE}
+merged <- left_join(world_shp, p4v_2017, by = c("NAME" = "country"))
+merged %>%
+  mutate(polity2 = as.factor(polity2)) %>%
+  mutate(polity2 = fct_collapse(polity2, 
+                                  'Highly Autocrative' = c('-10', '-9', '-8', '-7', '-6'),
+                                  'Autocrative' = c('-5', '-4', '-3', '-2', '-1'),
+                                  'Neutral' = '0',
+                                  'Democratic' = c('1', '2', '3', '4', '5'),
+                                  'Highly Democratic' = c('6', '7', '8', '9', '10'))) %>%
+ggplot() + geom_sf(aes(fill = polity2)) +
+    theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    panel.grid.major = element_blank(),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F")) +
+    scale_fill_manual("Political Regimes",
+                    values = c("Highly Autocrative" = "#874C62", 
+                               "Autocrative" = "#C38D9E",
+                               "Neutral" = "#C98474",
+                               "Democratic" = "#C09F80",
+                               "Highly Democratic" = "#E9C893")) +
+  labs(x = NULL, 
+       y = NULL, 
+       title = "Political Status Distribution 2017",
+       subtitle = "A total of 34 countries have autocratic political regimes, mostly in Asia and Africa. ",
+       fill = "Political Regimes",
+        caption = "Source: Center for Systemic Peace")
+```
+
+
+
+
+
+```{r,fig.width=20, fig.height=10, warning=FALSE, message=FALSE, error=FALSE}
+af_data <- world %>% 
+  filter(country == 'Afghanistan'| country == "Pakistan") %>%
+  filter(side_a != 'Government of Iraq'  & side_a != 'Hizb-i Islami-yi Afghanistan' & side_a != "Jam'iyyat-i Islami-yi Afghanistan" & side_a != "TTP-KM" & side_a != "BLA" & side_a != "LeJ" & side_a != "TTP" & side_a != "Government of India") %>%
+  mutate(side_a = fct_collapse(side_a, 
+                               "Afghanistan Govt" = "Government of Afghanistan",
+                               "U.S. Govt" = "Government of United States of America",
+                               "Pakistan Govt" = "Government of Pakistan",
+                               "IS" = "Islamic State",
+                               "Taleban" = "Taleban")) 
+
+
+register_google(key = "AIzaSyB8K3buCHUihhHZnm5ZRJbVjgP-6Z2sJQg")
+af_loc <- get_map("Afghanistan", zoom = 6, maptype = "toner", color = "bw")
+af_loc
+
+af_shp <- readOGR(".", "admin2_poly_32")
+proj4string(af_shp) <- CRS("+proj=longlat +datum=WGS84")
+af_shp <- spTransform(af_shp, CRS("+proj=longlat +datum=WGS84"))
+af_shp <- fortify(af_shp, region = "PRV_NAME")
+
+af_shp <- mutate(af_shp, id = tolower(id))
+af_region <- af_data %>% 
+  mutate(adm_1 = str_remove(adm_1, " province")) %>%
+  mutate(adm_1 = tolower(adm_1)) %>% 
+  group_by(adm_1) %>%
+  summarise(death = sum(best))
+
+af_shp <- af_shp %>% left_join(af_region, by = c("id" = "adm_1"))
+
+af_shp <- mutate(af_shp, deaths = ifelse(death < 300, "300<",
+                                 ifelse(death > 300 & death < 600, "300~600", 
+                                        ifelse(death > 600 & death < 900, "600~900", 
+                                               ifelse(death > 900 & death < 2000, "900~2000", ">2000")))))
+                                                           
+
+af_shp$deaths <- factor(af_shp$deaths, levels = c(">2000","900~2000", "600~900","300~600","300<"))
+
+af_map_2 <- ggmap(af_loc)  +
+  geom_polygon(aes(x=long, y=lat, group=group, fill=deaths), size=.2, color=1, data=af_shp, alpha=1) + 
+  scale_fill_manual("Total Casualties \n(Civilians incl.)",
+                   values = c("300<" = "#fff5f0" ,
+                              "300~600" = "#fee5d9",
+                              "600~900" = "#fcbba1",
+                              "900~2000" = "#fc9272",
+                              ">2000"= "#fb6a4a")) + 
+  geom_point(data = af_data, aes(longitude, latitude, size = best), color = "#67000d") +
+  theme_classic() + 
+    theme(
+    plot.title = element_text(size = 25, face = "bold", family = "Helvetica", color = "#76323F"),
+    plot.subtitle = element_text(size = 20, family = "Palatino", color = "#76323F"),
+    plot.caption = element_text(size = 18, hjust = 1, face="bold.italic", color = "#76323F"), 
+    axis.title.x = element_text(size = 18, face="bold", color = "#76323F"), 
+    axis.title.y = element_text(size = 18, face="bold", color = "#76323F"),
+    axis.text.x = element_text(size = 18, color = "#76323F"),
+    axis.text.y = element_text(size = 18, color = "#76323F"),
+    strip.text.x = element_text(size = 15, face="bold"),
+    legend.text = element_text(size = 15, face = "bold", color = "#76323F"),
+    panel.background = element_rect(fill = "#D7CEC7"),
+    plot.background = element_rect(fill = "#D7CEC7"),
+    legend.key = element_rect(fill = "#D7CEC7"),
+    legend.background = element_rect(fill = "#D7CEC7"),
+    panel.grid.major = element_blank(),
+    panel.grid = element_blank(),
+    legend.title = element_text(size = 15, face = "bold", color = "#76323F")) +
+   labs(x = NULL, 
+       y = NULL, 
+       title = "Conflict Casualties in Afghanistan 2017",
+       subtitle = "Conflicts and casualties concentrated in southern border regions.",
+        caption = "Source: UCPD Conflicts Data",
+       color = "Killed in Action")+
+  guides(size = guide_legend("Killed in Action"))
+  
+
+  
+af_map_2
+```
+
+```{r}
+
+```
+
+
